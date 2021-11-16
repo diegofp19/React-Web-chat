@@ -28,6 +28,68 @@
   color: #61dafb;
 }
 
+body, html {
+  height: 100%;
+}
+
+body {
+  background-image: url("https://static.vecteezy.com/system/resources/previews/000/560/188/non_2x/abstract-futuristic-template-geometric-diagonal-lines-on-dark-blue-background-vector.jpg");
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+  height: 100%;
+}
+
+#iconChat {
+  display: flex;
+  justify-content: right;
+  width: 20%;
+}
+
+#headReact {
+  background-color: #B0C400;
+  display: flex;
+}
+
+#user_name {
+  width: 20%;
+  margin-left: 10px;
+}
+
+#headTitle {
+  width: 60%;
+  display: flex;
+  align-items: center;
+  padding-left: 105.5px;
+}
+
+/* Texto para los mensajes*/
+
+#messageInput {
+  position: absolute;
+  bottom: 10px;
+  width: 100%;
+}
+
+#messageSubmit{
+  width: 15%;
+  margin: 10px;
+}
+
+#messageText {
+  width: 70%;
+  margin-left: 10px;
+}
+
+/* Mensajes*/
+.ownMessages{
+  border: 2px solid black;
+  background-color: white;
+  width: 20%;
+  padding:10px;
+  margin:10px 0 0 10px;
+}
+
 @keyframes App-logo-spin {
   from {
     transform: rotate(0deg);

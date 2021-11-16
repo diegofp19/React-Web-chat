@@ -3,6 +3,8 @@ const http = require('http');
 const app = express();
 const server = http.createServer(app);
 
+var usersList = [];
+
 
 const io = require("socket.io")(server, {
     cors: {
@@ -12,10 +14,18 @@ const io = require("socket.io")(server, {
   });
 
 io.on('connection', socket => {
-  console.log("Usuario conectado con id: " + socket.id);
 
-    socket.on('message_evt', () => {
-        console.log("Mensaje enviado");
+  socket.on("connected", (username)=>{
+    console.log("Usuario conectado con nombre: " + username);
+    usersList.push(username);
+      console.log(usersList);
+    
+  })
+  
+
+    socket.on("message_evt", (message) => {
+        console.log("Mensaje recibido en servidor: " + message.msg);
+        socket.broadcast.emit("message_server", message);
     })
 })
 

@@ -82,12 +82,23 @@ body {
 }
 
 /* Mensajes*/
-.ownMessages{
+
+.msgContainerOwn{
+  width: 100%;
+  display: flex;
+  justify-content: end;
+}
+.msgContainerExternal{
+  width: 100%;
+  display: flex;
+  justify-content: start;
+}
+.globalChatMessages{
   border: 2px solid black;
   background-color: white;
   width: 20%;
   padding:10px;
-  margin:10px 0 0 10px;
+  margin:10px 10px 0 10px;
 }
 
 @keyframes App-logo-spin {

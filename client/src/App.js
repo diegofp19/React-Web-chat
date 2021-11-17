@@ -1,12 +1,13 @@
 import "./App.css";
 import { useState, useEffect, useRef } from "react";
-import { io } from "socket.io-client";
-
+import { io, Socket } from "socket.io-client";
+const socketurl = "http://localhost:3670/";
 function App() {
   const [message, setMessage] = useState("");
-  const [socket, setSocket] = useState(null);
+  const [socket, setSocket] = useState(io(socketurl));
   const [rng_name, setRngName] = useState("");
   const [messageList, setMessageList] = useState([]);
+  var [usersConnectList, setUsersConnected] = useState([]);
 
   const submitButton = document.getElementById("submit");
 
@@ -14,18 +15,20 @@ function App() {
 
 
   var messageObject = null;
+  var showUsers = false;
 
 
   const Chance = require('chance');
   const chance = new Chance();
- 
+
   useEffect(() => {
-    const socket = io("http://localhost:3670/");
+
     const username = chance.name();
     socket.emit("connected", username);
     setRngName(username);
 
     socket.on("message_server", (message) => {
+      console.log(message);
       setMessage(message.msg);
       messageObject = { msg: message.msg, user: message.user };
       messageList.push(messageObject);
@@ -34,23 +37,34 @@ function App() {
 
     });
 
-    setSocket(socket);
+    socket.on("usersConnected", (usersOn) => {
+      usersConnectList = usersOn;
+      setUsersConnected(usersConnectList);
+      console.log(usersConnectList);
+      usersConnected();
+
+    });
 
   }, []);
 
 
+
+
+
+
+
   function insertMessage(username) {
-    var chat = document.getElementById("chatMsg");
+    showUsers = false;
+    var chat = document.getElementById("mainContainer");
+
     chat.innerHTML = "";
-    console.log(messageList.length);
     for (var i = 0; i < messageList.length; i++) {
-      console.log("Lista: " + messageList[i].user + " Usuario: " + username);
       if (messageList[i].user === username) {
 
-        chat.innerHTML += '<div class = "msgContainerOwn">"<div class="globalChatMessages">' + messageList[i].msg + '</div></div>';
+        chat.innerHTML += '<div class = "msgContainerOwn"><div class="globalChatMessages">' + messageList[i].msg + '</div></div>';
 
       } else {
-        chat.innerHTML += '<div class = "msgContainerExternal"><div class="globalChatMessages">' + messageList[i].msg + '</div></div>';
+        chat.innerHTML += '<div class="senderName">' + messageList[i].user + '</div> <div class = "msgContainerExternal"><div class="globalChatMessages">' + messageList[i].msg + '</div></div>';
       }
 
     }
@@ -68,11 +82,40 @@ function App() {
     socket.emit("message_evt", messageObject);
   }
 
+  function updateUsers() {
+    socket.emit("usersConnected");
+    return true;
+
+  }
+
   function handleOnChange(e) {
     setMessage(e.target.value);
   }
 
 
+  function usersConnected() {
+    var usersDiv = document.getElementById("mainContainer");
+    console.log(showUsers);
+    usersDiv.innerHTML = "";
+    console.log(usersConnectList);
+    for (var i = 0; i < usersConnectList.length; i++) {
+      usersDiv.innerHTML += '<div class = "userConnected" id = "userConnected' + i + '"  >' + usersConnectList[i] + '</div>';
+    }
+
+
+  }
+
+  var input = document.getElementById("mainContainer");
+  if (input != null) {
+    input.addEventListener("dblclick", function (e) {
+
+      if (e.target.className === "userConnected") {
+        var idPrivateChat = document.getElementById(e.target.id).textContent;
+        console.log(idPrivateChat);
+      }
+
+    });
+  }
 
 
 
@@ -83,13 +126,14 @@ function App() {
     <div>
       <div id="headReact">
         <div id="user_name">{rng_name}</div>
-        <div id="headTitle">Chat</div>
+        <div id="headTitle" onClick={() => insertMessage(rng_name)}>Chat</div>
+        <div id="headUsers" onClick={updateUsers}>Usuarios Conectado </div>
         <div id="iconChat">
           <img src="https://img.icons8.com/nolan/512/shrek.png" alt="Icono" width="50" height="50" />
         </div>
       </div>
 
-      <div id="chatMsg">
+      <div id="mainContainer">
 
 
       </div>

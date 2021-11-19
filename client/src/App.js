@@ -4,17 +4,17 @@ import { io, Socket } from "socket.io-client";
 const socketurl = "http://localhost:3670/";
 const Chance = require('chance');
 const chance = new Chance();
+const socket = io(socketurl);
 
 function App() {
   const [message, setMessage] = useState("");
-  const [socket, setSocket] = useState(io(socketurl));
   const [rng_name, setRngName] = useState("");
   const [messageList, setMessageList] = useState([]);
   const [usersConnectList, setUsersConnected] = useState([]);
+  const [mainView, setMainView] = useState("globalChat");
 
-  const submitButton = document.getElementById("submit");
 
-  const messagesRecieved = document.getElementsByClassName("ownMessages");
+
 
 
   var messageObject = null;
@@ -27,26 +27,57 @@ function App() {
     const username = chance.name();
     socket.emit("connected", username);
     setRngName(username);
-  }, []);
 
-  useEffect(() => {
+    //Conexion en server
+    socket.on("connectClient", (user) => {
+      setUsersConnected((userCon) => {
+        const users = Array.from(userCon);
+        users.push(user);
+        return users;
+      });
 
+    });
+
+    //Desconexion con el servidor
+    socket.on("disconnectClient", (user) => {
+
+      setUsersConnected((userCon) => {
+        const users = Array.from(userCon);
+        for (var i = 0; i < users.length; i++) {
+          if (user.name === users[i].name) {
+            users.splice(i, 1);
+          }
+        }
+        return users;
+      });
+
+    });
+
+    //Mensaje chat global
     socket.on("message_server", (message) => {
-      console.log(message);
       setMessage(message.msg);
       messageObject = { msg: message.msg, user: message.user };
-      messageList.push(messageObject);
-      setMessageList(messageList);
+      setMessageList((messageArray) => {
+        const Msg = Array.from(messageArray);
+        Msg.push(messageObject);
+        return Msg;
+      });
 
     });
-  }, [messageList]);
 
-  useEffect(() => {
+    //Lista de usuarios
     socket.on("usersConnected", (usersOn) => {
-      setUsersConnected(usersOn);
-      usersConnected();
+      setUsersConnected((userCon) => {
+        const users = Array.from(usersOn);
+        return users;
+      });
+      console.log(usersOn);
     });
-  });
+
+  }, []);
+
+
+
 
 
 
@@ -56,72 +87,25 @@ function App() {
   function handleOnClick() {
     var messageInput = document.getElementById("messageText");
     messageObject = { msg: messageInput.value, user: rng_name };
-    messageList.push(messageObject);
-    setMessageList(messageList);
+
+    setMessageList((oldmessages) => {
+      const newMsg = Array.from(oldmessages);
+      newMsg.push(messageObject);
+      return newMsg;
+    });
     socket.emit("message_evt", messageObject);
   }
 
-  function updateUsers() {
-    socket.emit("usersConnected");
-
-  }
 
   function handleOnChange(e) {
     setMessage(e.target.value);
   }
 
 
-  function usersConnected() {
-    var usersDiv = document.getElementById("mainContainer");
-    usersDiv.innerHTML = "";
-    for (var i = 0; i < usersConnectList.length; i++) {
+  function openPrivateChat(user) {
 
-      if (usersConnectList[i] !== rng_name) {
-        usersDiv.innerHTML += '<div class = "userConnected" id = "userConnected' + i + '"  >' + usersConnectList[i] + '</div>';
-      }
-
-    }
-
-
+    setMainView("privateChat");
   }
-
-  function insertPrivateChat(user) {
-    var privateChat = document.getElementById("mainContainer");
-
-    privateChat.innerHTML = '';
-    // for (var i = 0; i < messageList.length; i++) {
-    //   if (messageList[i].user === rng_name) {
-
-    //     chat.innerHTML += '<div class = "msgContainerOwn"><div class="globalChatMessages">' + messageList[i].msg + '</div></div>';
-
-    //   } else {
-    //     chat.innerHTML += '<div class="senderName">' + messageList[i].user + '</div> <div class = "msgContainerExternal"><div class="globalChatMessages">' + messageList[i].msg + '</div></div>';
-    //   }
-
-
-
-  }
-
-  var input = document.getElementById("mainContainer");
-  if (input !== null) {
-    var clickFunction = function (e) {
-      if (e.target.className === "userConnected") {
-        console.log(e.target.className + " --- " + e.target.id);
-        var userPrivateChat = document.getElementById(e.target.id).textContent;
-        console.log(userPrivateChat);
-        insertPrivateChat(userPrivateChat);
-
-
-      }
-
-    };
-    input.addEventListener("dblclick", clickFunction, false)
-  }
-
-
-
-
-
 
 
 
@@ -129,42 +113,128 @@ function App() {
 
   return (
     <div>
-      <div id="headReact">
-        <div id="user_name">{rng_name}</div>
-        <div id="headTitle" onClick={handleOnClick}>Chat</div>
-        <div id="headUsers" onClick={updateUsers}>Usuarios Conectado </div>
-        <div id="iconChat">
-          <img src="https://img.icons8.com/nolan/512/shrek.png" alt="Icono" width="50" height="50" />
+      {mainView === "globalChat" &&
+        <div>
+          <div id="headReact">
+            <div id="user_name">{rng_name}</div>
+            <div id="headTitle" onClick={() => setMainView("globalChat")}>Chat</div>
+            <div id="headUsers" onClick={() => setMainView("usersConnected")}>Usuarios Conectado </div>
+            <div id="iconChat">
+              <img src="https://img.icons8.com/nolan/512/shrek.png" alt="Icono" width="50" height="50" />
+            </div>
+          </div>
+          <div id="mainContainer">
+            {messageList.map((payload) => {
+              if (payload.user === rng_name) {
+                return (
+
+                  <div className="msgContainerOwn">
+                    <div className="globalChatMessages">
+                      {payload.msg}
+                    </div>
+                  </div>
+
+                )
+              } else {
+                return (
+                  <div>
+                    <div className="senderName">
+                      {payload.user}
+                    </div>
+                    <div className="msgContainerExternal">
+                      <div className="globalChatMessages">
+                        {payload.msg}
+                      </div>
+                    </div>
+                  </div>
+                )
+              }
+
+            })}
+
+          </div>
+          <div id="messageInput">
+            <input type="text" id="messageText" placeholder="Escriba aqui para enviar un mensaje" name="Texto" />
+            <input type="submit" id="messageSubmit" placeholder="Enviar" onClick={handleOnClick} />
+
+          </div>
+
         </div>
-      </div>
-
-      <div id="mainContainer">
-        {messageList.map((payload) => {
-          console.log(payload.user);
-          console.log(rng_name);
-
-          if (payload.user === rng_name) {
-            return (
-              <div class="msgContainerOwn"><div class="globalChatMessages"> {payload.msg} </div></div>
-            )
-          } else {
-            return(
-          <><div class="senderName"> {payload.user} </div><div class="msgContainerExternal"><div class="globalChatMessages">  {payload.msg}  </div></div></>
-            )
-          }
-
-        })}
-
-      </div>
-
-
-      <div id="messageInput">
-        <input type="text" id="messageText" placeholder="Escriba aqui para enviar un mensaje" name="Texto" />
-        <input type="submit" id="messageSubmit" placeholder="Enviar" onClick={handleOnClick} />
+      }
+      {mainView === "usersConnected" &&
+        <div>
+          <div id="headReact">
+            <div id="user_name">{rng_name}</div>
+            <div id="headTitle" onClick={() => setMainView("globalChat")}>Chat</div>
+            <div id="headUsers" onClick={() => setMainView("usersConnected")}>Usuarios Conectados </div>
+            <div id="iconChat">
+              <img src="https://img.icons8.com/nolan/512/shrek.png" alt="Icono" width="50" height="50" />
+            </div>
+          </div>
+          <div id="mainContainer">
+            {usersConnectList.map((payload) => {
+              console.log(payload.name);
+              return (
+                <div className="userConnected" onClick={() => openPrivateChat({payload})}>  {payload.name} </div>
+              )
+            })}
+          </div>
+        </div>
 
 
-      </div>
+      }
+      {mainView === "privateChat" &&
+        <div>
+          <div id="headReact">
+            <div id="user_name">{rng_name}</div>
+            <div id="headTitle" onClick={() => setMainView("globalChat")}>Chat</div>
+            <div id="headUsers" onClick={() => setMainView("usersConnected")}>Usuarios Conectado </div>
+            <div id="iconChat">
+              <img src="https://img.icons8.com/nolan/512/shrek.png" alt="Icono" width="50" height="50" />
+            </div>
+          </div>
+          <div id="mainContainer">
+            {messageList.map((payload) => {
+              if (payload.user === rng_name) {
+                return (
+
+                  <div className="msgContainerOwn">
+                    <div className="globalChatMessages">
+                      {payload.msg}
+                    </div>
+                  </div>
+
+                )
+              } else {
+                return (
+                  <div>
+                    <div className="senderName">
+                      {payload.user}
+                    </div>
+                    <div className="msgContainerExternal">
+                      <div className="globalChatMessages">
+                        {payload.msg}
+                      </div>
+                    </div>
+                  </div>
+                )
+              }
+
+            })}
+
+          </div>
+          <div id="messageInput">
+            <input type="text" id="messageText" placeholder="Escriba aqui para enviar un mensaje" name="Texto" />
+            <input type="submit" id="messageSubmit" placeholder="Enviar" onClick={handleOnClick} />
+
+          </div>
+
+        </div>
+      }
     </div>
+
+
+
   );
 }
 

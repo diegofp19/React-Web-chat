@@ -6,6 +6,7 @@ const server = http.createServer(app);
 var usersList = [];
 
 
+
 const io = require("socket.io")(server, {
   cors: {
     origin: "*",
@@ -14,10 +15,27 @@ const io = require("socket.io")(server, {
 });
 
 io.on('connection', socket => {
-
+  var userRegistered = "";
+  var userObject = null;
   socket.on("connected", (username) => {
-    usersList.push(username);
+    userObject = {name: username, sockID: socket.id};
+    usersList.push(userObject);
+    userRegistered = username;
+    console.log("Usuario conectado " + userObject.name);
+    socket.broadcast.emit("connectClient", userObject);
+    console.log("Lista de usuarios: " + usersList);
 
+  });
+
+  socket.on("disconnect", function() {
+    for(var i = 0; i<usersList.length;i++){
+      if(userRegistered === usersList[i].name){
+        usersList.splice(i,1);
+        console.log(userRegistered + " se ha desconectado");
+      }
+    }
+    console.log("prueba");
+    socket.broadcast.emit("disconnectClient", userObject);
   });
 
 
@@ -26,9 +44,7 @@ io.on('connection', socket => {
   });
 
   
-  socket.on("usersConnected",() =>{
     socket.emit("usersConnected", usersList);
-  });
   
 
 

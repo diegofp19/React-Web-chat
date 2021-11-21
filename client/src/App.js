@@ -1,7 +1,6 @@
 import "./App.css";
 import { useState, useEffect, useRef } from "react";
 import { io, Socket } from "socket.io-client";
-import { useIdleTimer } from 'react-idle-timer'
 const socketurl = "http://localhost:3670/";
 const Chance = require('chance');
 const chance = new Chance();
@@ -10,7 +9,7 @@ const socket = io(socketurl);
 
 
 function App() {
-  const [message, setMessage] = useState("");
+
   const [rng_name, setRngName] = useState("");
   const [messageList, setMessageList] = useState([]);
   const [usersConnectList, setUsersConnected] = useState([]);
@@ -20,9 +19,12 @@ function App() {
   const [trivialObject, setTrivialObject] = useState(null);
   const [possibleAnswers, setPossibleAnswers] = useState([]);
 
+
   var messageObject = null;
 
+  var timeoutTrivial = useRef(null);
 
+ const timeoutTemporalMsg = useRef(null);
 
 
   useEffect(() => {
@@ -57,7 +59,6 @@ function App() {
 
     //Mensaje chat global
     socket.on("message_server", (message) => {
-      setMessage(message.msg);
       messageObject = { msg: message.msg, user: message.user };
       setMessageList((messageArray) => {
         const Msg = Array.from(messageArray);
@@ -73,7 +74,6 @@ function App() {
         const users = Array.from(usersOn);
         return users;
       });
-      console.log(usersOn);
     });
 
     //Mensaje privado
@@ -97,17 +97,23 @@ function App() {
       //Mezclamos el array para que la respuesta correcta no se encuentre siempre en la misma posición en html
       shuffle(possibleAnswers);
       setPossibleAnswers(possibleAnswers);
+      console.log(mainView);
       setMainView("trivial");
+      timeoutTrivial.current = setTimeout(() => {
+        setMainView("disconnectPage");
+        socket.disconnect();
+
+      }, 60000);
     })
 
   }, []);
 
 
-
+  //Funcion que mezcla el contenido de un array
   function shuffle(array) {
     let currentIndex = array.length, randomIndex;
 
-    while (currentIndex != 0) {
+    while (currentIndex !== 0) {
 
       randomIndex = Math.floor(Math.random() * currentIndex);
       currentIndex--;
@@ -122,30 +128,98 @@ function App() {
 
 
 
-
-  function sendGlobalMessage() {
+  // Envio de mensajes 
+  function sendMessage(chat) {
     var messageInput = document.getElementById("messageText");
-    messageObject = { msg: messageInput.value, user: rng_name };
+    if (chat === "global") {
+      if (messageInput.value !== "") {
+        messageObject = { msg: messageInput.value, user: rng_name };
 
+        setMessageList((messageArray) => {
+          const Msg = Array.from(messageArray);
+          Msg.push(messageObject);
+          return Msg;
+        });
+      }
+        socket.emit("message_evt", messageObject);
+      } else {
+        if (messageInput.value !== "") {
+        var messageInput = document.getElementById("messageText");
+        messageObject = { msg: messageInput.value, user: rng_name, idReceiver: userPrivateChat.sockID };
+
+        setPrivateMsgList((messageArray) => {
+          const Msg = Array.from(messageArray);
+          Msg.push(messageObject);
+          return Msg;
+        });
+
+        socket.emit("privateMsg", messageObject);
+      }
+    }
+
+
+  }
+
+
+
+  var msgOwn = document.getElementsByClassName("msgContainerOwn");
+  for (let i = 0; i < msgOwn.length; i++) {
+    msgOwn[i].addEventListener("click", function () {
+      console.log("Clicked index: " + i);
+    });
+  }
+
+  // Cancelar un mensaje 
+  function cancelMsg(){
+    console.log(timeoutTemporalMsg);
+    clearTimeout(timeoutTemporalMsg.current);
     setMessageList((messageArray) => {
-      const Msg = Array.from(messageArray);
-      Msg.push(messageObject);
-      return Msg;
+      messageArray.splice(messageArray.length - 1, 1);
+      return messageArray;
     });
-    socket.emit("message_evt", messageObject);
   }
 
-  function sendPrivateMessage() {
-    var messageInput = document.getElementById("messageText");
-    messageObject = { msg: messageInput.value, user: rng_name, idReceiver: userPrivateChat.sockID };
+  // Envio de mensajes temporales
+  function sendTemporalMessage(chat) {
+      var messageInput = document.getElementById("messageText");
+    if (chat === "global") {
+      if (messageInput.value !== "") {
+        messageObject = { msg: messageInput.value, user: rng_name };
 
-    setPrivateMsgList((messageArray) => {
-      const Msg = Array.from(messageArray);
-      Msg.push(messageObject);
-      return Msg;
-    });
-    socket.emit("privateMsg", messageObject);
+        setMessageList((messageArray) => {
+          const Msg = Array.from(messageArray);
+          Msg.push(messageObject);
+          return Msg;
+        });
+      }
+      timeoutTemporalMsg.current = setTimeout(() => {
+          socket.emit("message_evt", messageObject);
+      }, 10000);
+      } else {
+        if (messageInput.value !== "") {
+        var messageInput = document.getElementById("messageText");
+        messageObject = { msg: messageInput.value, user: rng_name, idReceiver: userPrivateChat.sockID };
+
+        setPrivateMsgList((messageArray) => {
+          const Msg = Array.from(messageArray);
+          Msg.push(messageObject);
+          return Msg;
+        });
+        setTimeout(() => {
+          
+          socket.emit("privateMsg", messageObject);
+          setPrivateMsgList((messageArray) => {
+            messageArray.splice(0, messageArray.length);
+            return messageArray;
+          });
+
+      }, 10000);
+        
+      }
+    }
   }
+
+ 
 
 
 
@@ -155,19 +229,19 @@ function App() {
     setMainView("privateChat");
   }
 
-function answeredQuestion(answer){
-  if(answer.payload === trivialObject.correct_answer){
-    setMainView("globalChat");
-     setPossibleAnswers((answerArray) => {
-       console.log(answerArray);
-      for (var i = 0; i < answerArray.length; i++) {
-          answerArray.splice(i, answerArray.length);
-      }
-      return answerArray;
-    });
-    socket.emit("questionInProcess");
+  function answeredQuestion(answer) {
+    clearTimeout(timeoutTrivial.current);
+    if (answer.payload === trivialObject.correct_answer) {
+      setMainView("globalChat");
+      setPossibleAnswers((answerArray) => {
+        answerArray.splice(0, answerArray.length);
+        return answerArray;
+      });
+    } else {
+      setMainView("disconnectPage");
+      socket.disconnect();
+    }
   }
-}
 
 
 
@@ -177,8 +251,8 @@ function answeredQuestion(answer){
         <div>
           <div id="headReact">
             <div id="user_name">{rng_name}</div>
-            <div id="headTitle" onClick={() => setMainView("globalChat")}>Chat</div>
-            <div id="headUsers" onClick={() => setMainView("usersConnected")}>Usuarios Conectado </div>
+            <div id="headTitle" onClick={() => setMainView("globalChat")}>Chat Global </div>
+            <div id="headUsers" onClick={() => setMainView("usersConnected")}>Usuarios Conectados </div>
             <div id="iconChat">
               <img src="https://img.icons8.com/nolan/512/shrek.png" alt="Icono" width="50" height="50" />
             </div>
@@ -215,7 +289,9 @@ function answeredQuestion(answer){
           </div>
           <div id="messageInput">
             <input type="text" id="messageText" placeholder="Escriba aqui para enviar un mensaje" name="Texto" />
-            <input type="submit" id="messageSubmit" placeholder="Enviar" onClick={sendGlobalMessage} />
+            <input type="submit" id="messageSubmit" placeholder="Enviar" onClick={() => sendMessage("global")} />
+            <input type="submit" id="messageSubmit" placeholder="Envio temporal" onClick={() => sendTemporalMessage("global")} />
+            <input type="submit" id="messageSubmit" placeholder="Cancelar" onClick={cancelMsg} />
 
           </div>
 
@@ -256,6 +332,7 @@ function answeredQuestion(answer){
             {privateChatMsgList.map((payload) => {
 
               if (payload.user === rng_name) {
+
                 return (
 
                   <div className="msgContainerOwn">
@@ -284,7 +361,7 @@ function answeredQuestion(answer){
           </div>
           <div id="messageInput">
             <input type="text" id="messageText" placeholder="Escriba aqui para enviar un mensaje" name="Texto" />
-            <input type="submit" id="messageSubmit" placeholder="Enviar" onClick={sendPrivateMessage} />
+            <input type="submit" id="messageSubmit" placeholder="Enviar" onClick={() => sendMessage("private")} />
 
           </div>
 
@@ -294,8 +371,8 @@ function answeredQuestion(answer){
         <div>
           <div id="headReact">
             <div id="user_name">{rng_name}</div>
-            <div id="headTitle" onClick={() => setMainView("globalChat")}>Chat</div>
-            <div id="headUsers" onClick={() => setMainView("usersConnected")}>Usuarios Conectados </div>
+            <div id="headTitle">Chat</div>
+            <div id="headUsers">Usuarios Conectados </div>
             <div id="iconChat">
               <img src="https://img.icons8.com/nolan/512/shrek.png" alt="Icono" width="50" height="50" />
             </div>
@@ -306,8 +383,26 @@ function answeredQuestion(answer){
               return (
                 <div className="userConnected" onClick={() => answeredQuestion({ payload })}> {payload}</div>
               )
-              })}
+            })}
 
+
+
+          </div>
+        </div>
+      }
+      {mainView === "disconnectPage" &&
+        <div>
+          <div id="headReact">
+            <div id="user_name">{rng_name}</div>
+            <div id="headTitle">Chat</div>
+            <div id="headUsers">Usuarios Conectados </div>
+            <div id="iconChat">
+              <img src="https://img.icons8.com/nolan/512/shrek.png" alt="Icono" width="50" height="50" />
+            </div>
+          </div>
+          <div id="mainContainer">
+
+            <div className="userConnected" > Has sido desconectado del chat. </div>
 
 
           </div>

@@ -50,8 +50,6 @@ io.on('connection', socket => {
 
 
 
-  
-  
   socket.emit("usersConnected", usersList);
 
   
@@ -64,7 +62,6 @@ io.on('connection', socket => {
 setInterval(function (){
   if (usersList.length > 0) {
     var userRandom = Math.floor(Math.random() * (usersList.length));
-    console.log(userRandom);
     let fetchTrivial = nodeFetch("https://opentdb.com/api.php?amount=1&difficulty=easy&type=multiple");
 
     fetchTrivial.then(res =>

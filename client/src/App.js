@@ -27,8 +27,11 @@ function App() {
   // Variable que controla si se pueden enviar mensajes temporales
   const canSendTemporal = useRef(true);
 
-// Variable que controla si se pueden cancelar ciertos mensajes
+  // Variable que controla si se pueden cancelar ciertos mensajes
   const CanCancel = useRef(false);
+
+  const direction = useRef("");
+  const oldx = useRef(0);
 
   useEffect(() => {
     const username = chance.name();
@@ -122,9 +125,6 @@ function App() {
 
       try {
         const acc = new window.Accelerometer({ frequency: 60 });
-        /*acc.addEventListener("reading", function(){
-    
-        })*/
         acc.onreading = () => {
           const deltaX = Math.abs(lastX - acc.x);
           const deltaY = Math.abs(lastY - acc.y);
@@ -146,7 +146,7 @@ function App() {
           } else {
             if (shaking) {
               shaking = false;
-              //document.body.style.backgroundColor = "white";
+
               timer = setTimeout(() => {
                 console.log("stop");
                 document.body.style.backgroundColor = "white";
@@ -166,6 +166,8 @@ function App() {
     } else {
       alert("no accel");
     }
+
+    document.addEventListener("mousemove", mousemovemethod);
   }, []);
 
   //Funcion que mezcla el contenido de un array
@@ -182,8 +184,6 @@ function App() {
         array[currentIndex],
       ];
     }
-
-    return array;
   }
 
   // Envio de mensajes
@@ -235,14 +235,26 @@ function App() {
   }
 
   // Movimiento del raton
-  let start_x = 0;
-  let end_x = 0;
-  let start_time = 0;
-  const TIME_THRESHOLD = 200;
-  const SPACE_THRESHOLD = 200;
-  var timeout;
+  var counterMoves = 0;
+  function mousemovemethod(e) {
+    console.log(CanCancel.current);
+    if (CanCancel.current === true) {
+      if (e.pageX < oldx.current) {
+        counterMoves++;
+        console.log(counterMoves);
+      }
+      oldx.current = e.pageX;
+      if (counterMoves >= 75) {
+        counterMoves = 0;
+        cancelMsg();
+        CanCancel.current = false;
+        
+      }
+    }
 
-  // var myPics = document.getElementsByClassName("msgContainerOwn")[document.getElementsByClassName("msgContainerOwn").length - 1 ];
+  }
+
+
 
   // Envio de mensajes temporales
   function sendTemporalMessage(chat) {
@@ -316,20 +328,19 @@ function App() {
         <div>
           <div id="headReact">
             <div id="user_name">{rng_name}</div>
-            <div id="headTitle" onClick={() => setMainView("globalChat")}>
-              Chat Global{" "}
-            </div>
-            <div id="headUsers" onClick={() => setMainView("usersConnected")}>
-              Usuarios Conectados{" "}
-            </div>
-            <div id="iconChat">
+
+            <div id="iconChat" onClick={() => setMainView("globalChat")}>
               <img
-                src="https://img.icons8.com/nolan/512/shrek.png"
+                src="https://arcane.com/static/arcane-logo-a-2-b34b0493a79fb09b5ca3cff805292c7a.png"
                 alt="Icono"
-                width="50"
-                height="50"
+                width="45"
+                height="45"
               />
             </div>
+            <div id="headUsers" onClick={() => setMainView("usersConnected")}>
+              Usuarios{" "}
+            </div>
+
           </div>
           <div id="mainContainer">
             {messageList.map((payload) => {
@@ -358,23 +369,23 @@ function App() {
               placeholder="Escriba aqui para enviar un mensaje"
               name="Texto"
             />
-            <input
-              type="submit"
-              id="messageSubmit"
-              placeholder="Enviar"
+            <img
+              className="iconSend"
+              src="https://icons-for-free.com/iconfiles/png/512/media+message+send+telegram+icon-1320192980424419632.png"
+              alt="Icono"
+              width="30"
+              height="30"
+
               onClick={() => sendMessage("global")}
             />
-            <input
-              type="submit"
-              id="messageSubmit"
-              placeholder="Envio temporal"
+            <img
+              className="iconSend"
+              src="https://icons-for-free.com/iconfiles/png/512/clock+sand+time+icon-1320168051171757895.png"
+              alt="Icono"
+              width="30"
+              height="30"
+
               onClick={() => sendTemporalMessage("global")}
-            />
-            <input
-              type="submit"
-              id="messageSubmit"
-              placeholder="Cancelar"
-              onClick={cancelMsg}
             />
           </div>
         </div>
@@ -383,20 +394,19 @@ function App() {
         <div>
           <div id="headReact">
             <div id="user_name">{rng_name}</div>
-            <div id="headTitle" onClick={() => setMainView("globalChat")}>
-              Chat
+
+            <div id="iconChat" onClick={() => setMainView("globalChat")}>
+              <img
+                src="https://arcane.com/static/arcane-logo-a-2-b34b0493a79fb09b5ca3cff805292c7a.png"
+                alt="Icono"
+                width="45"
+                height="45"
+              />
             </div>
             <div id="headUsers" onClick={() => setMainView("usersConnected")}>
               Usuarios Conectados{" "}
             </div>
-            <div id="iconChat">
-              <img
-                src="https://img.icons8.com/nolan/512/shrek.png"
-                alt="Icono"
-                width="50"
-                height="50"
-              />
-            </div>
+
           </div>
           <div id="mainContainer">
             {usersConnectList.map((payload) => {
@@ -417,22 +427,22 @@ function App() {
         <div>
           <div id="headReact">
             <div id="user_name">{rng_name}</div>
-            <div id="headTitle" onClick={() => setMainView("globalChat")}>
-              {userPrivateChat.name}
+
+            <div id="iconChat" onClick={() => setMainView("globalChat")}>
+              <img
+                src="https://arcane.com/static/arcane-logo-a-2-b34b0493a79fb09b5ca3cff805292c7a.png"
+                alt="Icono"
+                width="45"
+                height="45"
+              />
             </div>
             <div id="headUsers" onClick={() => setMainView("usersConnected")}>
               Usuarios Conectados{" "}
             </div>
-            <div id="iconChat">
-              <img
-                src="https://img.icons8.com/nolan/512/shrek.png"
-                alt="Icono"
-                width="50"
-                height="50"
-              />
-            </div>
+
           </div>
           <div id="mainContainer">
+            <div id="privateChatUser">{userPrivateChat.name}</div>
             {privateChatMsgList.map((payload) => {
               if (
                 payload.user === rng_name &&
@@ -463,11 +473,23 @@ function App() {
               placeholder="Escriba aqui para enviar un mensaje"
               name="Texto"
             />
-            <input
-              type="submit"
-              id="messageSubmit"
-              placeholder="Enviar"
-              onClick={() => sendMessage("private")}
+            <img
+              className="iconSend"
+              src="https://icons-for-free.com/iconfiles/png/512/media+message+send+telegram+icon-1320192980424419632.png"
+              alt="Icono"
+              width="30"
+              height="30"
+
+              onClick={() => sendMessage("global")}
+            />
+            <img
+              className="iconSend"
+              src="https://icons-for-free.com/iconfiles/png/512/clock+sand+time+icon-1320168051171757895.png"
+              alt="Icono"
+              width="30"
+              height="30"
+
+              onClick={() => sendTemporalMessage("global")}
             />
           </div>
         </div>
@@ -480,7 +502,7 @@ function App() {
             <div id="headUsers">Usuarios Conectados </div>
             <div id="iconChat">
               <img
-                src="https://img.icons8.com/nolan/512/shrek.png"
+                src="https://arcane.com/static/arcane-logo-a-2-b34b0493a79fb09b5ca3cff805292c7a.png"
                 alt="Icono"
                 width="50"
                 height="50"
@@ -511,7 +533,7 @@ function App() {
             <div id="headUsers">Usuarios Conectados </div>
             <div id="iconChat">
               <img
-                src="https://img.icons8.com/nolan/512/shrek.png"
+                src="https://arcane.com/static/arcane-logo-a-2-b34b0493a79fb09b5ca3cff805292c7a.png"
                 alt="Icono"
                 width="50"
                 height="50"

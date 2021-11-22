@@ -33,34 +33,45 @@ body, html {
 }
 
 body {
-  background-image: url("https://static.vecteezy.com/system/resources/previews/000/560/188/non_2x/abstract-futuristic-template-geometric-diagonal-lines-on-dark-blue-background-vector.jpg");
+  background-image: url("https://www.ixpap.com/images/2021/11/Arcane-Wallpaper-6.jpg"); 
+  background-size: contain;
   background-position: center;
   background-repeat: no-repeat;
-  background-size: cover;
+  background-color: rgb(49, 49, 49);
   height: 100%;
 }
 
 #iconChat {
   display: flex;
-  justify-content: right;
-  width: 20%;
+  justify-content: center;
+  width: 33%;
+  margin-bottom: 2px;
 }
 
 #headReact {
-  background-color: #B0C400;
+  background-color: #272727;
   display: flex;
 }
 
+
 #user_name {
-  width: 20%;
+  color: rgb(187, 187, 187);
+  width: 33%;
+  display: flex;
+  align-items: center;
   margin-left: 10px;
 }
 
-#headTitle {
-  width: 60%;
+
+#headUsers{
+  color: rgb(187, 187, 187);
+  width: 33%;
   display: flex;
+  justify-content: right;
   align-items: center;
-  padding-left: 105.5px;
+  margin-right: 10px;
+  
+  
 }
 
 #mainContainer{
@@ -68,22 +79,35 @@ body {
   scroll-behavior: smooth;
 }
 
+#privateChatUser{
+  position: absolute;
+  width: 300px;
+background-color: #f0c692;
+  border-radius: 45%;
+  top: 50%;
+  left: 50%;
+  margin: -285px 0 0 -150px;
+  text-align: center;
+  
+}
 /* Texto para los mensajes*/
 
 #messageInput {
+  display: flex;
   position: absolute;
   bottom: 10px;
   width: 100%;
 }
 
-#messageSubmit{
-  width: 15%;
-  margin: 10px;
-}
 
 #messageText {
-  width: 70%;
+  width: 95%;
   margin-left: 10px;
+}
+
+.iconSend{
+  border-radius: 100%;
+  margin: 6px 0 6px 6px;
 }
 
 /* Mensajes*/

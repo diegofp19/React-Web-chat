@@ -24,7 +24,9 @@ function App() {
 
   var timeoutTrivial = useRef(null);
 
- const timeoutTemporalMsg = useRef(null);
+  const timeoutTemporalMsg = useRef(null);
+
+  var CanCancel = useRef(false);
 
 
   useEffect(() => {
@@ -78,7 +80,7 @@ function App() {
 
     //Mensaje privado
     socket.on("privateMsgClient", (privateMsg) => {
-      messageObject = { msg: privateMsg.msg, user: privateMsg.user };
+      messageObject = { msg: privateMsg.msg, user: privateMsg.user, receiver: privateMsg.sockID };
       setPrivateMsgList((messageArray) => {
         const Msg = Array.from(messageArray);
         Msg.push(messageObject);
@@ -97,7 +99,6 @@ function App() {
       //Mezclamos el array para que la respuesta correcta no se encuentre siempre en la misma posición en html
       shuffle(possibleAnswers);
       setPossibleAnswers(possibleAnswers);
-      console.log(mainView);
       setMainView("trivial");
       timeoutTrivial.current = setTimeout(() => {
         setMainView("disconnectPage");
@@ -105,6 +106,70 @@ function App() {
 
       }, 60000);
     })
+
+
+
+// Movimiento móvil
+    let lastX = 0;
+    let lastY = 0;
+    let lastZ = 0;
+
+    let shaking = false;
+    let timer = null;
+
+    const options = {
+      threshold: 15
+    };
+
+
+    if ('Accelerometer' in window && CanCancel === true) {
+      CanCancel = false;
+      try {
+        const acc = new window.Accelerometer({ frequency: 60 });
+        /*acc.addEventListener("reading", function(){
+    
+        })*/
+        acc.onreading = () => {
+          const deltaX = Math.abs(lastX - acc.x);
+          const deltaY = Math.abs(lastY - acc.y);
+          const deltaZ = Math.abs(lastZ - acc.z);
+
+          if (((deltaX > options.threshold) && (deltaY > options.threshold)) ||
+            ((deltaX > options.threshold) && (deltaZ > options.threshold)) ||
+            ((deltaY > options.threshold) && (deltaZ > options.threshold))
+          ) {
+            if (!shaking) {
+              console.log('shake');
+              shaking = true;
+              document.body.style.backgroundColor = "red";
+              if (timer) {
+                clearTimeout(timer);
+                timer = null;
+              }
+            }
+          } else {
+            if (shaking) {
+              cancelMsg();
+              shaking = false;
+              //document.body.style.backgroundColor = "white";
+              timer = setTimeout(() => {
+                console.log("stop");
+                document.body.style.backgroundColor = "white";
+              }, 500);
+            }
+          }
+
+          lastX = acc.x;
+          lastY = acc.y;
+          lastZ = acc.z;
+
+        }
+
+        acc.start();
+      } catch (err) {
+        console.log(err);
+      }
+    }
 
   }, []);
 
@@ -141,12 +206,12 @@ function App() {
           return Msg;
         });
       }
-        socket.emit("message_evt", messageObject);
-      } else {
-        if (messageInput.value !== "") {
+      socket.emit("message_evt", messageObject);
+    } else {
+      if (messageInput.value !== "") {
         var messageInput = document.getElementById("messageText");
         messageObject = { msg: messageInput.value, user: rng_name, idReceiver: userPrivateChat.sockID };
-
+        console.log("ENVIADO --- " + userPrivateChat.name);
         setPrivateMsgList((messageArray) => {
           const Msg = Array.from(messageArray);
           Msg.push(messageObject);
@@ -162,26 +227,34 @@ function App() {
 
 
 
-  var msgOwn = document.getElementsByClassName("msgContainerOwn");
-  for (let i = 0; i < msgOwn.length; i++) {
-    msgOwn[i].addEventListener("click", function () {
-      console.log("Clicked index: " + i);
+
+
+  // Cancelar un mensaje 
+  function cancelMsg() {
+    clearTimeout(timeoutTemporalMsg.current);
+    setMessageList((messageArray) => {
+      const Msg = Array.from(messageArray);
+      Msg.pop();
+      return Msg;
     });
   }
 
-  // Cancelar un mensaje 
-  function cancelMsg(){
-    console.log(timeoutTemporalMsg);
-    clearTimeout(timeoutTemporalMsg.current);
-    setMessageList((messageArray) => {
-      messageArray.splice(messageArray.length - 1, 1);
-      return messageArray;
-    });
-  }
+  // Movimiento del raton
+  let start_x = 0;
+  let end_x = 0;
+  let start_time = 0;
+  const TIME_THRESHOLD = 200;
+  const SPACE_THRESHOLD = 200;
+  var timeout;
+
+  // var myPics = document.getElementsByClassName("msgContainerOwn")[document.getElementsByClassName("msgContainerOwn").length - 1 ];
+
+
 
   // Envio de mensajes temporales
   function sendTemporalMessage(chat) {
-      var messageInput = document.getElementById("messageText");
+    CanCancel = true;
+    var messageInput = document.getElementById("messageText");
     if (chat === "global") {
       if (messageInput.value !== "") {
         messageObject = { msg: messageInput.value, user: rng_name };
@@ -193,10 +266,10 @@ function App() {
         });
       }
       timeoutTemporalMsg.current = setTimeout(() => {
-          socket.emit("message_evt", messageObject);
+        socket.emit("message_evt", messageObject);
       }, 10000);
-      } else {
-        if (messageInput.value !== "") {
+    } else {
+      if (messageInput.value !== "") {
         var messageInput = document.getElementById("messageText");
         messageObject = { msg: messageInput.value, user: rng_name, idReceiver: userPrivateChat.sockID };
 
@@ -206,20 +279,20 @@ function App() {
           return Msg;
         });
         setTimeout(() => {
-          
+
           socket.emit("privateMsg", messageObject);
           setPrivateMsgList((messageArray) => {
             messageArray.splice(0, messageArray.length);
             return messageArray;
           });
 
-      }, 10000);
-        
+        }, 10000);
+
       }
     }
   }
 
- 
+
 
 
 
@@ -260,6 +333,7 @@ function App() {
           <div id="mainContainer">
             {messageList.map((payload) => {
               if (payload.user === rng_name) {
+
                 return (
 
                   <div className="msgContainerOwn">
@@ -331,10 +405,9 @@ function App() {
           <div id="mainContainer">
             {privateChatMsgList.map((payload) => {
 
-              if (payload.user === rng_name) {
+              if (payload.user === rng_name && payload.idReceiver === userPrivateChat.sockID) {
 
                 return (
-
                   <div className="msgContainerOwn">
                     <div className="globalChatMessages">
                       {payload.msg}

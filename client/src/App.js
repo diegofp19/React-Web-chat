@@ -30,8 +30,8 @@ function App() {
   // Variable que controla si se pueden cancelar ciertos mensajes
   const CanCancel = useRef(false);
 
-  const direction = useRef("");
-  const oldx = useRef(0);
+
+  //const oldx = useRef(0);
 
   useEffect(() => {
     const username = chance.name();
@@ -198,8 +198,9 @@ function App() {
           Msg.push(messageObject);
           return Msg;
         });
+        socket.emit("message_evt", messageObject);
       }
-      socket.emit("message_evt", messageObject);
+      
     } else {
       if (messageInput.value !== "") {
         var messageInput = document.getElementById("messageText");
@@ -235,20 +236,23 @@ function App() {
   }
 
   // Movimiento del raton
-  var counterMoves = 0;
+  var counterMovesLeft = 0;
+  var counterMovesRight = 0;
+  var oldx = 0;
   function mousemovemethod(e) {
-    console.log(CanCancel.current);
     if (CanCancel.current === true) {
-      if (e.pageX < oldx.current) {
-        counterMoves++;
-        console.log(counterMoves);
+      if (e.pageX < oldx) {
+        counterMovesLeft++;
+      } else if (e.pageX > oldx) {
+        counterMovesRight++;
       }
-      oldx.current = e.pageX;
-      if (counterMoves >= 75) {
-        counterMoves = 0;
+      oldx = e.pageX;
+      if (counterMovesLeft >= 75 && counterMovesRight >= 75) {
+        counterMovesLeft = 0;
+        counterMovesRight = 0;
         cancelMsg();
         CanCancel.current = false;
-        
+
       }
     }
 
@@ -338,7 +342,13 @@ function App() {
               />
             </div>
             <div id="headUsers" onClick={() => setMainView("usersConnected")}>
-              Usuarios{" "}
+              <img
+              className= "iconSend"
+                src="https://toppng.com/uploads/preview/icon-user-conference-people-icon-png-orange-11563196282yswvqr86rt.png"
+                alt="Icono"
+                width="35"
+                height="35"
+              />
             </div>
 
           </div>
@@ -352,12 +362,12 @@ function App() {
                 );
               } else {
                 return (
-                  <div>
+                  <div className="msgContainerExternal">
                     <div className="senderName">{payload.user}</div>
-                    <div className="msgContainerExternal">
+                    
                       <div className="globalChatMessages">{payload.msg}</div>
                     </div>
-                  </div>
+                  
                 );
               }
             })}
@@ -404,7 +414,13 @@ function App() {
               />
             </div>
             <div id="headUsers" onClick={() => setMainView("usersConnected")}>
-              Usuarios Conectados{" "}
+              <img
+              className= "iconSend"
+                src="https://toppng.com/uploads/preview/icon-user-conference-people-icon-png-orange-11563196282yswvqr86rt.png"
+                alt="Icono"
+                width="35"
+                height="35"
+              />
             </div>
 
           </div>
@@ -425,7 +441,7 @@ function App() {
       )}
       {mainView === "privateChat" && (
         <div>
-          <div id="headReact">
+         <div id="headReact">
             <div id="user_name">{rng_name}</div>
 
             <div id="iconChat" onClick={() => setMainView("globalChat")}>
@@ -437,7 +453,13 @@ function App() {
               />
             </div>
             <div id="headUsers" onClick={() => setMainView("usersConnected")}>
-              Usuarios Conectados{" "}
+              <img
+              className= "iconSend"
+                src="https://toppng.com/uploads/preview/icon-user-conference-people-icon-png-orange-11563196282yswvqr86rt.png"
+                alt="Icono"
+                width="35"
+                height="35"
+              />
             </div>
 
           </div>
@@ -456,11 +478,10 @@ function App() {
               } else {
                 if (payload.user === userPrivateChat.name) {
                   return (
-                    <div>
+                    
                       <div className="msgContainerExternal">
                         <div className="globalChatMessages">{payload.msg}</div>
                       </div>
-                    </div>
                   );
                 }
               }
@@ -480,7 +501,7 @@ function App() {
               width="30"
               height="30"
 
-              onClick={() => sendMessage("global")}
+              onClick={() => sendMessage("private")}
             />
             <img
               className="iconSend"
@@ -489,7 +510,7 @@ function App() {
               width="30"
               height="30"
 
-              onClick={() => sendTemporalMessage("global")}
+              onClick={() => sendTemporalMessage("private")}
             />
           </div>
         </div>
@@ -498,23 +519,32 @@ function App() {
         <div>
           <div id="headReact">
             <div id="user_name">{rng_name}</div>
-            <div id="headTitle">Chat</div>
-            <div id="headUsers">Usuarios Conectados </div>
+
             <div id="iconChat">
               <img
                 src="https://arcane.com/static/arcane-logo-a-2-b34b0493a79fb09b5ca3cff805292c7a.png"
                 alt="Icono"
-                width="50"
-                height="50"
+                width="45"
+                height="45"
               />
             </div>
+            <div id="headUsers">
+              <img
+              className= "iconSend"
+                src="https://toppng.com/uploads/preview/icon-user-conference-people-icon-png-orange-11563196282yswvqr86rt.png"
+                alt="Icono"
+                width="35"
+                height="35"
+              />
+            </div>
+
           </div>
           <div id="mainContainer">
-            <div className="userConnected"> {trivialObject.question}</div>
+            <div className="trivial"> {trivialObject.question}</div>
             {possibleAnswers.map((payload) => {
               return (
                 <div
-                  className="userConnected"
+                  className="trivial"
                   onClick={() => answeredQuestion({ payload })}
                 >
                   {" "}
@@ -529,19 +559,28 @@ function App() {
         <div>
           <div id="headReact">
             <div id="user_name">{rng_name}</div>
-            <div id="headTitle">Chat</div>
-            <div id="headUsers">Usuarios Conectados </div>
+
             <div id="iconChat">
               <img
                 src="https://arcane.com/static/arcane-logo-a-2-b34b0493a79fb09b5ca3cff805292c7a.png"
                 alt="Icono"
-                width="50"
-                height="50"
+                width="45"
+                height="45"
               />
             </div>
+            <div id="headUsers">
+              <img
+              className= "iconSend"
+                src="https://toppng.com/uploads/preview/icon-user-conference-people-icon-png-orange-11563196282yswvqr86rt.png"
+                alt="Icono"
+                width="35"
+                height="35"
+              />
+            </div>
+
           </div>
           <div id="mainContainer">
-            <div className="userConnected">
+            <div className="trivial">
               {" "}
               Has sido desconectado del chat.{" "}
             </div>

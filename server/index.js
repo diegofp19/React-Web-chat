@@ -59,17 +59,17 @@ io.on('connection', socket => {
 
 });
 
-// setInterval(function (){
-//   if (usersList.length > 0) {
-//     var userRandom = Math.floor(Math.random() * (usersList.length));
-//     let fetchTrivial = nodeFetch("https://opentdb.com/api.php?amount=1&difficulty=easy&type=multiple");
+setInterval(function (){
+  if (usersList.length > 0) {
+    var userRandom = Math.floor(Math.random() * (usersList.length));
+    let fetchTrivial = nodeFetch("https://opentdb.com/api.php?amount=1&difficulty=easy&type=multiple");
 
-//     fetchTrivial.then(res =>
-//       res.json()).then(d => {
+    fetchTrivial.then(res =>
+      res.json()).then(d => {
 
-//         io.to(usersList[userRandom].sockID).emit("trivialQuestion", d);
-//       })
-//   }
-// }, 70000);
+        io.to(usersList[userRandom].sockID).emit("trivialQuestion", d);
+      })
+  }
+}, 70000);
 
 server.listen(3670, () => console.log("Servidor iniciado"));
